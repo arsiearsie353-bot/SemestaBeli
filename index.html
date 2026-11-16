@@ -1,0 +1,188 @@
+index.html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PondokNiaga - Toko Online Serba Ada</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #333; }
+        header { background: #00b4d8; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 24px; cursor: pointer; }
+        .nav-links button { background: none; border: none; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-left: 20px; }
+        .container { padding: 30px; max-width: 1200px; margin: 0 auto; min-height: 80vh; }
+        
+        /* Filter Kategori */
+        .filters { margin-bottom: 20px; display: flex; gap: 10px; }
+        .filters button { background: white; padding: 8px 18px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .filters button.active, .filters button:hover { background: #00b4d8; color: white; border-color: #00b4d8; }
+        
+        /* Grid Produk */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+        .card img { max-width: 100%; height: 180px; object-fit: cover; border-radius: 8px; }
+        .card h3 { font-size: 16px; margin: 12px 0 5px 0; color: #333; }
+        .card .category-badge { font-size: 11px; background: #e0f7fa; color: #00838f; padding: 3px 8px; border-radius: 10px; align-self: center; margin-bottom: 8px; }
+        .card p { color: #e63946; font-weight: bold; margin: 0 0 12px 0; font-size: 18px; }
+        .btn { background: #00b4d8; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+        .btn:hover { background: #0077b6; }
+        
+        /* Notifikasi */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #2a9d8f; color: white; padding: 12px 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: none; z-index: 1000; animation: slideUp 0.3s ease; }
+        
+        /* Halaman Keranjang & Sukses */
+        .page { display: none; }
+        .page.active { display: block; }
+        .cart-container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .cart-item-info { display: flex; flex-direction: column; }
+        .btn-remove { background: none; border: none; color: #e63946; cursor: pointer; font-weight: bold; }
+        .total-section { text-align: right; font-size: 22px; font-weight: bold; margin: 25px 0; color: #e63946; }
+        .btn-checkout { background: #2a9d8f; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
+        .btn-checkout:hover { background: #1e7164; }
+        
+        /* Halaman Sukses */
+        .success-box { text-align: center; padding: 50px 20px; background: white; max-width: 500px; margin: 50px auto; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .success-box h2 { color: #2a9d8f; font-size: 28px; margin-bottom: 10px; }
+        
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navigasi -->
+    <header>
+        <h1 onclick="switchPage('home')">🛒 PondokNiaga</h1>
+        <div class="nav-links">
+            <button onclick="switchPage('home')">Beranda</button>
+            <button onclick="switchPage('cart')">Keranjang (<span id="cart-count">0</span>)</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- TAMPILAN 1: HALAMAN BERANDA -->
+        <div id="page-home" class="page active">
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterCategory('Semua', this)">Semua</button>
+                <button class="filter-btn" onclick="filterCategory('Alat Tulis', this)">Alat Tulis</button>
+                <button class="filter-btn" onclick="filterCategory('Pakaian', this)">Pakaian</button>
+            </div>
+            <div class="grid" id="product-grid"></div>
+        </div>
+
+        <!-- TAMPILAN 2: HALAMAN KERANJANG -->
+        <div id="page-cart" class="page">
+            <div class="cart-container">
+                <h2>Keranjang Belanja Anda</h2>
+                <div id="cart-items-list"></div>
+                <div class="total-section">
+                    Total: <span id="cart-total-price">Rp 0</span>
+                </div>
+                <button class="btn-checkout" onclick="checkout()">Konfirmasi Pemesanan via WhatsApp</button>
+            </div>
+        </div>
+
+        <!-- TAMPILAN 3: HALAMAN SUKSES CHKEOUT -->
+        <div id="page-success" class="page">
+            <div class="success-box">
+                <h2>🎉 Pesanan Berhasil!</h2>
+                <p>Data pesanan Anda siap dikirimkan ke Admin toko.</p>
+                <button class="btn" style="margin-top: 20px; max-width: 200px;" onclick="switchPage('home')">Belanja Lagi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifikasi Pop-up -->
+    <div class="toast" id="toast-msg">Produk ditambahkan ke keranjang!</div>
+
+    <script>
+        // 1. DATA PRODUK (Bisa diubah/ditambah langsung di sini)
+        const PRODUCTS = [
+            { id: 1, name: "Pulpen Gel Estetik", category: "Alat Tulis", price: 5000, image: "https://unsplash.com" },
+            { id: 2, name: "Buku Catatan Grid A5", category: "Alat Tulis", price: 15000, image: "https://unsplash.com" },
+            { id: 3, name: "Pensil 2B Premium", category: "Alat Tulis", price: 3000, image: "https://unsplash.com" },
+            { id: 4, name: "Kaos Polos Katun Combed", category: "Pakaian", price: 45000, image: "https://unsplash.com" },
+            { id: 5, name: "Jaket Hoodie Minimalis", category: "Pakaian", price: 120000, image: "https://unsplash.com" }
+        ];
+
+        // 2. STATE APLIKASI (Keranjang Belanja)
+        let cart = [];
+
+        // format angka ke Rupiah standard (contoh: 15.000)
+        function formatRupiah(num) {
+            return "Rp " + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Fungsi Memuat/Menampilkan Produk di Beranda
+        function renderProducts(productsToDisplay) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            
+            productsToDisplay.forEach(product => {
+                grid.innerHTML += `
+                    <div class="card">
+                        <img src="${product.image}" alt="${product.name}">
+                        <h3>${product.name}</h3>
+                        <span class="category-badge">${product.category}</span>
+                        <p>${formatRupiah(product.price)}</p>
+                        <button class="btn" onclick="addToCart(${product.id})">Beli Sekarang</button>
+                    </div>
+                `;
+            });
+        }
+
+        // Fungsi Filter Berdasarkan Kategori Beranda
+        function filterCategory(category, element) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+
+            if (category === 'Semua') {
+                renderProducts(PRODUCTS);
+            } else {
+                const filtered = PRODUCTS.filter(p => p.category === category);
+                renderProducts(filtered);
+            }
+        }
+
+        // Fungsi Tambah Barang Ke Keranjang
+        function addToCart(id) {
+            const item = PRODUCTS.find(p => p.id === id);
+            if (item) {
+                cart.push(item);
+                updateCartUI();
+                showToast(`${item.name} dimasukkan ke keranjang!`);
+            }
+        }
+
+        // Fungsi Hapus Barang dari Keranjang
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+            renderCartPage();
+        }
+
+        // Fungsi Update Angka Indikator Keranjang di Header
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.length;
+        }
+
+        // Menampilkan Isi Keranjang di Halaman Keranjang
+        function renderCartPage() {
+            const listContainer = document.getElementById('cart-items-list');
+            const totalContainer = document.getElementById('cart-total-price');
+            
+            if (cart.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #666; margin: 4px 0;">Keranjang belanja Anda kosong.</p>';
+                totalContainer.innerText = "Rp 0";
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            let total = 0;
+
+            cart.forEach((item, index) => {
+                total += item.price;
+                listContainer.innerHTML += `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <strong>${item.name}</strong>
